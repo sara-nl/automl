@@ -26,7 +26,7 @@ Present approaches
 * [Geometric](https://arxiv.org/pdf/1902.04615.pdf) data augmentation and [group equivariance](https://staff.fnwi.uva.nl/m.welling/wp-content/uploads/papers/icml2016_GCNN.pdf) 
 
 ## Automatic HPC scaling and optimal hardware efficiency
-This can be done naively by leveraging the emberasingly parallel components of the search space exploration. This is probably also done by the cloud Function-as-a-Service (FaaS) providers (?). This should also ensure efficient hardware utilization, similar to [EfficientNet](https://arxiv.org/abs/1905.11946). [AmeobaNet](https://arxiv.org/pdf/1901.01074.pdf), and [HAT](https://arxiv.org/pdf/2005.14187.pdf).
+This can be done naively by leveraging the emberasingly parallel components of the search space exploration. This is probably also done by the cloud Function-as-a-Service (FaaS) providers (?). This should also ensure efficient hardware utilization, similar to [EfficientNet](https://arxiv.org/abs/1905.11946), [AmeobaNet](https://arxiv.org/pdf/1901.01074.pdf), and [HAT](https://arxiv.org/pdf/2005.14187.pdf).
 
 ## Additional tasks
 There could be also approximate models for predicting possible accuracy, i.e. for a stochastic optimizer train 10 epochs and extrapolate to 90.
@@ -56,7 +56,7 @@ There could be also approximate models for predicting possible accuracy, i.e. fo
 | sherpa          | yes                   |                                         |                                           |                       |                     |             |                     |                         | no     |
 | smac3           | yes                   | no (?)                                  | ?                                         | yes within a node     | ?                   | ?           | Multiple            |                         | no     |
 | talos           | yes                   |                                         |                                           |                       |                     |             |                     |                         | no     |
-| tpot            | yes                   | limited to scikit | xboost              | limited to sklearn pipes, can be extended | yes within a node     | ?                   | easy        | Multiple            |                         | yes    |
+| tpot            | yes                   | limited to scikit & xboost              | limited to sklearn pipes, can be extended | yes within a node     | ?                   | easy        | Multiple            |                         | yes    |
 | tune            | yes                   |                                         |                                           |                       |                     |             |                     |                         | no     |
 | vizier          | yes                   |                                         |                                           |                       |                     |             |                     |                         | no     |
 
