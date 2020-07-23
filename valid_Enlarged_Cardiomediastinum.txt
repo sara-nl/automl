@@ -1,0 +1,4 @@
+/nfs/managed_datasets/chexpert/CheXpert-v1.0-small/valid/patient64739/study1/view1_frontal.jpg
+/nfs/managed_datasets/chexpert/CheXpert-v1.0-small/valid/patient64708/study1/view1_frontal.jpg
+/nfs/managed_datasets/chexpert/CheXpert-v1.0-small/valid/patient64710/study1/view1_frontal.jpg
+/nfs/managed_datasets/chexpert/CheXpert-v1.0-small/valid/patient64739/study1/view1_frontal.jpg
