@@ -5,7 +5,7 @@ from pprint import pprint
 import pickle
 from PIL import Image
 import numpy as np
-from autoPyTorch import AutoNetImageClassification, HyperparameterSearchSpaceUpdates
+from autoPyTorch import AutoNetImageClassification, AutoNetClassification, HyperparameterSearchSpaceUpdates
 import sklearn.model_selection
 import sklearn.metrics
 from sklearn import preprocessing
@@ -14,7 +14,8 @@ from torch.autograd import Variable
 from torchvision import transforms
 import json
 import pandas as pd
-from pathlib import Path
+from pathlib import Path, PurePath
+import shutil
 
 input_size = (8, 8)
 channels = 3
@@ -43,7 +44,7 @@ def write_chexpert_metadata(df, path, phase):
                 with open("{}_{}.txt".format(phase, "_".join(df.columns.values[5:][positive[0]].split(" "))), "a", newline='\n') as fp:
                     counter += 1
                     fp.write(os.path.join(path, *row['Path'].split("/")[1:]))
-                    fp.write('\n')
+                    # fp.write('\n')
     print("Wrote {} examples in total".format(counter)) #Default settings run yields
 
 
@@ -57,7 +58,7 @@ def prepare_dataset(chexpertpath = "/nfs/managed_datasets/chexpert/CheXpert-v1.0
     write_chexpert_metadata(valid_df, chexpertpath, "valid")
 
 
-def get_data_references(images = [] , labels = [] , filter = "train_", copy_to = work_location, metadata_location=".", balance = balance, img_channels = channels):
+def get_data_references(images = [] , labels = [] , filter = "train_", copy_to = work_location, metadata_location=".", balance = balance, img_channels = channels, copy=False):
     '''
     If you don't  want to copy set copy_to = None; only if this is set img_channels is taken into account 
     balance = 180 means each class gets 180 examples before splits
@@ -80,28 +81,29 @@ def get_data_references(images = [] , labels = [] , filter = "train_", copy_to =
     if copy_to:
         os.makedirs(copy_to, exist_ok=True)
         for i, im in enumerate(images):
-            if "\n" in im:
-                im = im.strip()
-            if img_channels == 3:
-                mode = "RGB"
-            elif img_channels == 1:
-                mode = "L"
-            with Image.open(im).convert(mode) as image:
-                image = image.resize(input_size)
-                im_arr = np.fromstring(image.tobytes(), dtype=np.uint8) / 255.0
-            try:
-                im_arr = im_arr.reshape((image.size[1], image.size[0], img_channels))
-            except ValueError as e:
-                im_arr = im_arr.reshape((image.size[1], image.size[0]))
-                im_arr = np.stack((im_arr,) * img_channels, axis=-1)
-            finally:
-                im_arr = np.moveaxis(im_arr, -1, 0) #Pytorch is channelfirst
-                dest = os.path.join(copy_to, "{0}.{1}".format(str(i), im.split("/")[-1].split(".")[-1]))
-                # copyfile(im, dest)
-                image.save(dest) 
-                # print("Wrote image {} of shape {} with label {}({})".format(dest, im_arr.shape, labels[i], le.inverse_transform(labels)[i]))
+            dest = Path(os.path.join(copy_to, str(i))).with_suffix(Path(im).suffix.strip())
+            if copy:
+                if "\n" in im:
+                    im = im.strip()
+                if img_channels == 3:
+                    mode = "RGB"
+                elif img_channels == 1:
+                    mode = "L"
+                with Image.open(im).convert(mode) as image:
+                    image = image.resize(input_size)
+                    im_arr = np.fromstring(image.tobytes(), dtype=np.uint8) / 255.0
+                try:
+                    im_arr = im_arr.reshape((image.size[1], image.size[0], img_channels))
+                except ValueError as e:
+                    im_arr = im_arr.reshape((image.size[1], image.size[0]))
+                    im_arr = np.stack((im_arr,) * img_channels, axis=-1)
+                finally:
+                    im_arr = np.moveaxis(im_arr, -1, 0) #Pytorch is channelfirst
+                    # copyfile(im, dest)
+                    image.save(dest) 
+                    # print("Wrote image {} of shape {} with label {}({})".format(dest, im_arr.shape, labels[i], le.inverse_transform(labels)[i]))
             images[i] = dest
-        print("Copy {} files".format(i+1))
+        print("Found {} samples".format(i+1))
     assert len(images) == len(labels)
     return images, labels, le
 
@@ -130,51 +132,56 @@ def jpg_image_to_array(image_path):
     return im_arr
 
 
-if __name__ == "__main__":
-    #Get the dataset (this could be yielded/batched)
-    images, labels, le  = get_data_references(filter="train_" , copy_to = os.path.join(work_location, "train"))
-    X_train, X_test, y_train, y_test = sklearn.model_selection.train_test_split(images, labels, test_size=0.1, random_state=9, shuffle=True)
+
+def create_model(max_batch):
     search_space_updates = HyperparameterSearchSpaceUpdates()
     #TODO: this still runs out of memory and wastes resources
     search_space_updates.append(node_name="CreateImageDataLoader", hyperparameter="batch_size", log=False, \
-                                value_range=[2, int(len(labels)/20)]) #Lipschitz magical number
-    autonet = AutoNetImageClassification(
-                                        preset, \
-                                        hyperparameter_search_space_updates=search_space_updates, \
-                                        min_workers=2, \
-                                        dataloader_worker=4, \
-                                        global_results_dir="results", \
-                                        keep_only_incumbent_checkpoints=False, \
-                                        log_level="info", \
-                                        budget_type="epochs", \
-                                        save_checkpoints=True, \
-                                        result_logger_dir=save_output_to, \
-                                        min_budget=1, \
-                                        max_budget=10, \
-                                        num_iterations=1, \
-                                        images_shape=[channels, input_size[0], input_size[1]], \
-                                        cuda=True \
-                                        )
+                                value_range=[2, max_batch]) 
+    # shutil.rmtree(save_output_to)
+    autonet = AutoNetClassification(
+                                    preset, \
+                                    # hyperparameter_search_space_updates=search_space_updates, \
+                                    min_workers=2, \
+                                    # dataloader_worker=4, \
+                                    # global_results_dir="results", \
+                                    # keep_only_incumbent_checkpoints=False, \
+                                    log_level="info", \
+                                    budget_type="time", \
+                                    # save_checkpoints=True, \
+                                    result_logger_dir=save_output_to, \
+                                    min_budget=200, \
+                                    max_budget=600, \
+                                    num_iterations=1, \
+                                    # images_shape=[channels, input_size[0], input_size[1]], \
+                                    optimizer = ["adam", "adamw", "sgd", "rmsprop"], \
+                                    algorithm="hyperband", \
+                                    optimize_metric="balanced_accuracy", \
+                                    additional_metrics=["pac_metric"], \
+                                    lr_scheduler=["cosine_annealing", "cyclic", "step", "adapt", "plateau", "alternating_cosine", "exponential"], \
+                                    networks=['mlpnet', 'shapedmlpnet', 'resnet', 'shapedresnet', 'darts'], #, 'densenet_flexible', 'resnet', 'resnet152', 'darts'], \
+                                    use_tensorboard_logger=True, \
+                                    cuda=True \
+                                    )
+    return autonet
 
-    #fit
+
+if __name__ == "__main__":
+    #Get the dataset (this could be yielded/batched)
+    images, labels, le  = get_data_references(filter="train_" , copy_to = os.path.join(work_location, "train"), copy=False)
     
-    # autoPyTorch.fit(images, labels, optimize_metric="balanced_accuracy", use_tensorboard_logger=True, loss_modules=['cross_entropy'], validation_split=0.1)
-    # autoPyTorch.fit(images, labels, optimize_metric="accuracy", use_tensorboard_logger=True, networks=['resnet'], lr_scheduler=['cosine_annealing'], batch_loss_computation_techniques=['mixup'], loss_modules=['cross_entropy'], validation_split=0.1)
-    # autoPyTorch.fit(images, labels, optimize_metric="balanced_accuracy",  networks=['densenet', 'densenet_flexible', 'resnet', 'resnet152', 'darts'], use_tensorboard_logger=True, loss_modules=["cross_entropy"], validation_split=0.1)
-
-    results_fit = autonet.fit(\
-                            X_train=X_train, Y_train=y_train, \
-                            X_valid=X_test, Y_valid=y_test, \
-                            optimizer = ["adam", "adamw", "sgd", "rmsprop"], \
-                            algorithm="hyperband", \
-                            optimize_metric="balanced_accuracy", \
-                            additional_metrics=["pac_metric"], \
-                            lr_scheduler=["cosine_annealing", "cyclic", "step", "adapt", "plateau", "alternating_cosine", "exponential"], \
-                            networks=['resnet','densenet', 'darts'], #, 'densenet_flexible', 'resnet', 'resnet152', 'darts'], \
-                            refit=True, \
-                            use_tensorboard_logger=True \
-                            )
-
+    model = create_model(max_batch=int(len(labels)/20)) #Lipschitz magical number
+    X = []
+    for i, im in enumerate(images):
+        image = jpg_image_to_array(im)
+        X.append(image)
+    #autopytorch format
+    X = [np.asarray(x).flatten() for x in X]
+    X_train, X_test, y_train, y_test = sklearn.model_selection.train_test_split(X, labels, test_size=0.1, random_state=9, shuffle=True)
+    results_fit = model.fit(\
+                        X_train=X_train, Y_train=y_train, \
+                        X_valid=X_test, Y_valid=y_test, \
+                        refit=True, \
+                        )
     with open("{}/results_fit.json".format(save_output_to), "w") as file:
         json.dump(results_fit, file)
-

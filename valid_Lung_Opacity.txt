@@ -2,3 +2,4 @@
 /nfs/managed_datasets/chexpert/CheXpert-v1.0-small/valid/patient64570/study1/view1_frontal.jpg
 /nfs/managed_datasets/chexpert/CheXpert-v1.0-small/valid/patient64598/study1/view1_frontal.jpg
 /nfs/managed_datasets/chexpert/CheXpert-v1.0-small/valid/patient64638/study1/view1_frontal.jpg
+/nfs/managed_datasets/chexpert/CheXpert-v1.0-small/valid/patient64570/study1/view1_frontal.jpg/nfs/managed_datasets/chexpert/CheXpert-v1.0-small/valid/patient64598/study1/view1_frontal.jpg/nfs/managed_datasets/chexpert/CheXpert-v1.0-small/valid/patient64638/study1/view1_frontal.jpg
