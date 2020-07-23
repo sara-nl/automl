@@ -7,9 +7,15 @@ Execute with `python auto_chexpert.py`
 Dataset is prepared by calling the `prepare_dataset()` function from `auto_chexpert.py`
 
 ## TODO
-Current limitations:
-* 8x8 input
-* single (categorical) pathologies - approx 1/3 of the dataset
+* Extend to larger input
+* Extend to multilabel
+* Add additional poses (besides frontal)
+* Add `optuna` for `min_budget`, `max_budget`, `num_iterations` 
+* Compare `optuna` with `autonet` for `optimizer`, `lr_scheduler`, `networks`
+
+## Current limitations 
+* `8x8` input
+* single (categorical) pathologies - approx 1/3 of the samples, still with samples for all 14 pathologies
 * frontal image only
 * validation is not done on the oficial validation set but on a portion of the official training set, due to lack of categorical labels in the official validation selection
 
