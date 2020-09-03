@@ -153,7 +153,7 @@ def create_model(max_batch):
     autonet = AutoNetClassification(
                                     preset, \
                                     # hyperparameter_search_space_updates=search_space_updates, \
-                                    min_workers=2, \
+                                    min_workers=4, \
                                     # dataloader_worker=4, \
                                     # global_results_dir="results", \
                                     # keep_only_incumbent_checkpoints=False, \
@@ -162,8 +162,8 @@ def create_model(max_batch):
                                     # save_checkpoints=True, \
                                     result_logger_dir=save_output_to, \
                                     min_budget=200, \
-                                    max_budget=600, \
-                                    num_iterations=1, \
+                                    max_budget=800, \
+                                    num_iterations=10, \
                                     # images_shape=[channels, input_size[0], input_size[1]], \
                                     optimizer = ["adam", "adamw", "sgd", "rmsprop"], \
                                     algorithm="hyperband", \
