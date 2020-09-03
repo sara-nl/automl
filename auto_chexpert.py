@@ -17,13 +17,25 @@ import pandas as pd
 from pathlib import Path, PurePath
 import shutil
 
-input_size = (8, 8)
-channels = 3
-balance = 280 #Examples / class, set None if you want to load all examples
-work_location = "/tmp/chexpert_dataset"
-chexpertpath = "/nfs/managed_datasets/chexpert/CheXpert-v1.0-small"
-preset = "full_cs"
-save_output_to = "/tmp/{1}balanced_ba_ce_{0}_{2}".format(input_size, balance, preset)
+import argparse
+
+parser = argparse.ArgumentParser(description='Chexpert automl and hyperparameter search.')
+parser.add_argument('--input_size', nargs='+', type=int, default=[8, 8])
+parser.add_argument('--channels', type=int, default=3)
+parser.add_argument('--balance', type=int, default=280, help='Examples / class, set None if you want to load all examples')
+parser.add_argument('--work_location', type=str, default='/tmp/chexpert_dataset')
+parser.add_argument('--chexpertpath', type=str, default='/nfs/managed_datasets/chexpert/CheXpert-v1.0-small')
+parser.add_argument('--preset', type=str, default='full_cs')
+parser.add_argument('--save_output_to', type=str, default='/tmp')
+parser.add_argument('--prepare_data', type=bool, default=False)
+args = parser.parse_args()
+input_size = tuple(args.input_size)
+channels = args.channels
+balance = args.balance
+work_location = args.work_location
+chexpertpath = args.chexpertpath
+preset = args.preset
+save_output_to = "{3}/{1}balanced_ba_ce_{0}_{2}".format(input_size, balance, preset, args.save_output_to)
 
 
 def get_chexpert_metadata(path):
@@ -41,7 +53,7 @@ def write_chexpert_metadata(df, path, phase):
         if row[3] == "Frontal": # Loading only frontal
             positive = np.where(row[5:].values == 1.0)[0] 
             if len(positive) == 1: # Loading only categorical examples (max 1 pathology)
-                with open("{}_{}.txt".format(phase, "_".join(df.columns.values[5:][positive[0]].split(" "))), "a", newline='\n') as fp:
+                with open("{}/{}_{}.txt".format("indexes", phase, "_".join(df.columns.values[5:][positive[0]].split(" "))), "a", newline='\n') as fp:
                     counter += 1
                     fp.write(os.path.join(path, *row['Path'].split("/")[1:]))
                     # fp.write('\n')
@@ -58,7 +70,7 @@ def prepare_dataset(chexpertpath = "/nfs/managed_datasets/chexpert/CheXpert-v1.0
     write_chexpert_metadata(valid_df, chexpertpath, "valid")
 
 
-def get_data_references(images = [] , labels = [] , filter = "train_", copy_to = work_location, metadata_location=".", balance = balance, img_channels = channels, copy=False):
+def get_data_references(images = [] , labels = [] , filter = "train_", copy_to = work_location, metadata_location="indexes", balance = balance, img_channels = channels, copy=False):
     '''
     If you don't  want to copy set copy_to = None; only if this is set img_channels is taken into account 
     balance = 180 means each class gets 180 examples before splits
@@ -132,7 +144,6 @@ def jpg_image_to_array(image_path):
     return im_arr
 
 
-
 def create_model(max_batch):
     search_space_updates = HyperparameterSearchSpaceUpdates()
     #TODO: this still runs out of memory and wastes resources
@@ -159,7 +170,7 @@ def create_model(max_batch):
                                     optimize_metric="balanced_accuracy", \
                                     additional_metrics=["pac_metric"], \
                                     lr_scheduler=["cosine_annealing", "cyclic", "step", "adapt", "plateau", "alternating_cosine", "exponential"], \
-                                    networks=['mlpnet', 'shapedmlpnet', 'resnet', 'shapedresnet', 'darts'], #, 'densenet_flexible', 'resnet', 'resnet152', 'darts'], \
+                                    networks=['mlpnet', 'shapedmlpnet', 'resnet', 'shapedresnet'], #, 'densenet_flexible', 'resnet', 'resnet152', 'darts'], \
                                     use_tensorboard_logger=True, \
                                     cuda=True \
                                     )
@@ -167,8 +178,13 @@ def create_model(max_batch):
 
 
 if __name__ == "__main__":
+    if args.prepare_data:
+        prepare_dataset(chexpertpath)
+        copy = True
+    else:
+        copy = False
     #Get the dataset (this could be yielded/batched)
-    images, labels, le  = get_data_references(filter="train_" , copy_to = os.path.join(work_location, "train"), copy=False)
+    images, labels, le  = get_data_references(filter="train_" , copy_to = os.path.join(work_location, "train"), copy=copy)
     
     model = create_model(max_batch=int(len(labels)/20)) #Lipschitz magical number
     X = []

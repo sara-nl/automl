@@ -1,7 +1,7 @@
 # Automl for chexpert
 
 ## Run
-Execute with `python auto_chexpert.py`
+Execute with `python auto_chexpert.py`. In the very first run please also specify `--prepare_data True`, subsequent runs should have `--prepare_data False` (the default).
 
 ## Prepare data
 Dataset is prepared by calling the `prepare_dataset()` function from `auto_chexpert.py`
