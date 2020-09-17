@@ -7,7 +7,7 @@ Execute with `python auto_chexpert.py`. In the very first run please also specif
 Dataset is prepared by calling the `prepare_dataset()` function from `auto_chexpert.py`
 
 ## TODO
-* Extend to multilabel
+* Extend to non-categorical labels
 * Replace Ray Tune with Optuna
 
 ## Current limitations 
